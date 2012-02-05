@@ -11,13 +11,10 @@ class Nest
 	{
 		// Set the properties
 		$this->debug	 = $debug;
-		$this->username  = $username;
-		$this->password  = $password;
+		$this->username	 = $username;
+		$this->password	 = $password;
 		$this->useragent = 'Nest/1.1.0.10 CFNetwork/548.0.4';
-
-		// Login to MobileMe
 		$this->cookieFile = tempnam('/tmp', 'nest-cookie');
-		$this->authenticated = false;
 
 		// Login
 		$response = $this->curlPost('https://home.nest.com/user/login', 'username=' . urlencode($username) . '&password=' . urlencode($password));
@@ -25,6 +22,7 @@ class Nest
 		if (($json = json_decode($response)) === false)
 			throw new Exception('Unable to connect to Nest');
 
+		// Stash information needed to make subsequence requests
 		$this->access_token = $json->access_token;
 		$this->user_id = $json->userid;
 		$this->transport_url = $json->urls->transport_url;
@@ -57,11 +55,11 @@ class Nest
 
 		$structure = $status->user->{$this->user_id}->structures[0];
 		list (,$structure_id) = explode('.', $structure);
-		$device_id = $status->structure->{$structure_id}->devices[0];
-		list (,$device_serial) = explode('.', $device_id);
-        $temperature_scale = $status->device->{$device_serial}->temperature_scale;
+		$device = $status->structure->{$structure_id}->devices[0];
+		list (,$device_serial) = explode('.', $device);
+		$temperature_scale = $status->device->{$device_serial}->temperature_scale;
 
-        if ($temperature_scale == "F")
+		if ($temperature_scale == "F")
 		{
 			$target_temp_celsius = (($temp - 32) / 1.8);
 		}
@@ -143,10 +141,5 @@ class Nest
 		$this->lastStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
 		return $html;
-	}
-
-	private function match($regex, $str, $i = 0)
-	{
-		return preg_match($regex, $str, $match) == 1 ? $match[$i] : false;
 	}
 }
