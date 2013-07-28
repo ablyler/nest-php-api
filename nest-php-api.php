@@ -41,12 +41,21 @@ class Nest
 			default:
 				throw new Exception('Invalid state given: "' . $state . '"');
 		}
-		
+
 		$status = $this->status_get();
 
 		$structure_id = $status->user->{$this->user_id}->structures[0];
 		$payload = json_encode(array('away_timestamp' => time(), 'away' => $away, 'away_setter' => 0));
 		return $this->curlPost($this->transport_url . '/v2/put/' . $structure_id, $payload);
+	}
+
+	public function house_state_get()
+	{
+		$status = $this->status_get();
+
+		$structure = $status->user->{$this->user_id}->structures[0];
+		list (,$structure_id) = explode('.', $structure);
+		return ($status->structure->{$structure_id}->away ? 'away' : 'home');
 	}
 
 	public function temperature_set($temp)
@@ -67,7 +76,7 @@ class Nest
 		{
 			$target_temp_celsius = $temp;
 		}
-		
+
 		$payload = json_encode(array('target_change_pending' => true, 'target_temperature' => $target_temp_celsius));
 		return $this->curlPost($this->transport_url . '/v2/put/shared.' . $device_serial, $payload);
 	}
@@ -75,7 +84,7 @@ class Nest
 	public function status_get()
 	{
 		$response = $this->curlGet($this->transport_url . '/v2/mobile/user.' . $this->user_id);
-		
+
 		if (($json = json_decode($response)) === false)
 			throw new Exception('Unable to gather the status from Nest');
 
@@ -88,7 +97,7 @@ class Nest
 		$headers[] = 'Authorization: Basic ' . $this->access_token;
 		$headers[] = 'X-nl-user-id:' . $this->user_id;
 		$headers[] = 'X-nl-protocol-version: 1';
-		
+
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookieFile);
